@@ -11,5 +11,6 @@
 ### Gebruikte PIP modules (Python):
 - RPi.GPIO (https://pypi.org/project/RPi.GPIO)
 - picamera2 (https://pypi.org/project/picamera2)
+- pyPS4Controller (https://pypi.org/project/pyPS4Controller)
 
 **Ingebouwde modules:** threading, time, io, logging, socketserver, http, requests
