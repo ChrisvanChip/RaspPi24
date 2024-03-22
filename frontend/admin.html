@@ -1,0 +1,163 @@
+<html lang="en">
+
+<head>
+    <title>Het KoffieKarretje™</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.5.10/dist/vuetify.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.5.10/dist/vuetify.js"></script>
+    <style>
+        .green-button.v-btn--outlined {
+            color: green;
+            border-color: green;
+        }
+
+        .card {
+            border-radius: 10px;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            /* Added margin to create space between cards */
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .button-row {
+            display: flex;
+            justify-content: center;
+        }
+
+        .button-col {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .background {
+            background-color: #fff6df;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <v-app>
+            <div class="background">
+                <v-container>
+                    <v-row>
+                        <v-col cols="12">
+                            <h1 class="display-2 text-center mb-5 brown--text">De KoffieController</h1>
+                        </v-col>
+                    </v-row>
+                    <v-row>
+                      <v-col cols="12">
+                        <v-card class="card align-center justify-center">
+                                <v-card-title class="card-title align-center justify-center">{{ alerts }}</v-card-title>
+                            </v-card>
+                        </v-col>
+                        <v-col cols="12">
+                            <v-card class="card align-center justify-center">
+                                <v-card-title class="card-title align-center justify-center">Status</v-card-title>
+                                <v-card-text>
+                                    <pre>
+{{ status }}
+                                    </pre>
+                                </v-card-text>
+                                <v-card-actions class="button-row">
+                                    <v-btn @click="reset()" color="warning">Reset status</v-btn>
+                                </v-card-actions>
+                            </v-card>
+                        </v-col>
+                        <v-col cols="12">
+                            <v-card class="card align-center justify-center">
+                                <v-card-title class="card-title align-center justify-center">Acties</v-card-title>
+                                <v-card-actions class="button-row">
+                                    <v-btn @click="vertrek()" color="success">Vertrek</v-btn>
+                                    <v-btn @click="volgende()" color="primary">Volgende</v-btn>
+                                    <v-btn @click="einde()" color="error">Einde</v-btn>
+                                </v-card-actions>
+                            </v-card>
+                            <v-card class="card align-center justify-center">
+                                <v-card-title class="card-title align-center justify-center">Kamer acties</v-card-title>
+                                <v-card-actions class="button-row">
+                                    <v-text-field label="Kamer" v-model="kamer" type="number"></v-text-field>
+                                    <v-btn @click="aangekomen()" color="success">Aangekomen</v-btn>
+                                    <v-btn @click="bevestig()" color="primary">Bevestig</v-btn>
+                                </v-card-actions>
+                        </v-col>
+                    </v-row>
+                </v-container>
+            </div>
+        </v-app>
+    </div>
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        new Vue({
+            el: "#app",
+            vuetify: new Vuetify({
+                theme: {
+                    dark: true
+                }
+            }),
+            data() {
+                return {
+                    status: "",
+                    kamer: 1,
+                  	alerts: "Geen meldingen actief"
+                };
+            },
+            methods: {
+                reset() {
+                    axios.get("https://koffiekarretje.opdewolk.nl/reset")
+                },
+                vertrek() {
+                    axios.get("https://koffiekarretje.opdewolk.nl/vertrek")
+                },
+                volgende() {
+                    axios.get("https://koffiekarretje.opdewolk.nl/volgende")
+                },
+                einde() {
+                    axios.get("https://koffiekarretje.opdewolk.nl/einde")
+                },
+                aangekomen() {
+                    axios.get("https://koffiekarretje.opdewolk.nl/gearriveerd/" + this.kamer)
+                },
+                bevestig() {
+                    axios.get("https://koffiekarretje.opdewolk.nl/bevestig/" + this.kamer)
+                },
+            },
+            mounted() {
+                var self = this
+                axios.get("https://koffiekarretje.opdewolk.nl/status").then(function (response) {
+                    self.status = JSON.stringify(response.data, null, 4);
+                })
+                var pusher = new Pusher('a8fc9ca1dc5948d5c0dc', {
+                    cluster: 'eu'
+                });
+
+                var channel = pusher.subscribe('status');
+                channel.bind('update', function (data) {
+                    self.status = JSON.stringify(data, null, 4);
+                });
+              	channel.bind('alert', function(data) {
+                  self.alerts = "⚠️ Kamer " + data + " meldt dat de bestelling niet is aangekomen"
+                })
+            },
+        });
+    </script>
+</body>
+
+<script>'undefined' === typeof _trfq || (window._trfq = []); 'undefined' === typeof _trfd && (window._trfd = []), _trfd.push({ 'tccl.baseHost': 'secureserver.net' }, { 'ap': 'cpbh-mt' }, { 'server': 'p3plmcpnl499458' }, { 'dcenter': 'p3' }, { 'cp_id': '7547551' }, { 'cp_cache': '' }, { 'cp_cl': '6' })</script>
+<script src='https://img1.wsimg.com/traffic-assets/js/tccl.min.js'></script>
+
+</html>

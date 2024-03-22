@@ -1,0 +1,199 @@
+<html lang="en">
+
+<head>
+    <title>Het KoffieKarretje™</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.5.10/dist/vuetify.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.5.10/dist/vuetify.js"></script>
+    <style>
+        .green-button.v-btn--outlined {
+            color: green;
+            border-color: green;
+        }
+
+        .card {
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            /* Added margin to create space between cards */
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .button-row {
+            display: flex;
+            justify-content: center;
+        }
+
+        .button-col {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .background {
+            background-color: #fff6df;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <v-app>
+            <div class="background">
+                <v-container>
+                    <v-row>
+                        <v-col cols="12">
+                            <h1 class="display-2 text-center mb-5 brown--text">Het KoffieKarretje™</h1>
+                        </v-col>
+                    </v-row>
+                    <v-row>
+                        <v-col cols="12" md="4" v-for="(kamer, index) in status.kamers" :key="index">
+                            <v-card outlined class="card align-center justify-center"
+                                :disabled="kamer.buttonText != 'Bestellen'" color="#C5CFAE">
+                                <v-card-title class="card-title align-center justify-center">Kamer {{ index
+                                    }}</v-card-title>
+                                <v-card-actions class="button-row">
+                                    <v-btn outlined @click="changeButtonText(index)" :color="kamer.buttonColor">{{
+                                        kamer.buttonText }}</v-btn>
+                                </v-card-actions>
+                            </v-card>
+                        </v-col>
+                        <v-col cols="12">
+                            <v-alert loading outlined text :icon="status.banner.statusIcon"
+                                :color="status.banner.statusType">
+                                {{ status.banner.statusLabel }}
+                            </v-alert>
+                        </v-col>
+                    </v-row>
+                    <v-footer padless fixed>
+                        <v-card flat tile width="100%" class="black text-center">
+                            <v-card-text class="pa-2 white--text">
+                                © 2024 - Alle gerechten geserveerd
+                            </v-card-text>
+                        </v-card>
+                    </v-footer>
+                    <div class="text-center">
+                        <v-bottom-sheet v-model="bevestig" persistent>
+                            <v-sheet class="text-center" height="200px">
+                                <v-card-title class="text-center align-center justify-center">Het KoffieKarretje is
+                                    aangekomen</v-card-title>
+                                <v-card-text>
+                                    Zodra u klaar bent met uw bestelling, kunt u hieronder op "Gereed" klikken.<br>
+                                    Bestelling niet aangekomen? Klik dan op "Er is niets aangekomen".
+                                </v-card-text>
+                                <v-card-actions class="text-center align-center justify-center">
+                                    <v-btn @click="bevestigactie" color="success">Gereed ({{ timer }})</v-btn>
+                                    <v-btn @click="alert" text color="error">Er is niets aangekomen</v-btn>
+                                </v-card-actions>
+                            </v-sheet>
+                        </v-bottom-sheet>
+                    </div>
+                </v-container>
+            </div>
+        </v-app>
+    </div>
+
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        new Vue({
+            el: "#app",
+            vuetify: new Vuetify({
+                theme: {
+                    dark: true
+                }
+            }),
+            data() {
+                return {
+                    kamer: "",
+                    bevestig: false,
+                    timer: 60,
+                    status: {
+                        statusIcon: "mdi-sleep",
+                        statusLabel: "Het KoffieKarretje wacht op een bestelling",
+                        statusType: "success",
+                        kamers: {
+                            1: {
+                                buttonText: 'Bestellen',
+                                buttonColor: "",
+                            },
+                            2: {
+                                buttonText: 'Bestellen',
+                                buttonColor: "",
+                            },
+                            3: {
+                                buttonText: 'Bestellen',
+                                buttonColor: "",
+                            },
+                        },
+                    }
+                };
+            },
+            mounted() {
+                var self = this
+                axios.get("https://koffiekarretje.opdewolk.nl/status").then(function (response) {
+                    self.status = response.data.status
+                })
+                var pusher = new Pusher('a8fc9ca1dc5948d5c0dc', {
+                    cluster: 'eu'
+                });
+
+                var channel = pusher.subscribe('status');
+                channel.bind('update', function (data) {
+                    self.status = data.status
+                });
+                channel.bind('aangekomen', function (data) {
+                    self.timer = 150
+                    var timer
+                    timer = function () {
+                        setTimeout(() => {
+                            if (self.timer == 1) {
+                                axios.get("https://koffiekarretje.opdewolk.nl/bevestig/" + this.kamer)
+                                self.bevestig = false
+                                return
+                            } else if (self.timer > 1) {
+                                self.timer -= 1
+                                timer()
+                            }
+                        }, 1000)
+                    }
+                    timer()
+                    self.bevestig = true
+                    self.kamer = data
+                });
+            },
+            methods: {
+                alert() {
+                    axios.get("https://koffiekarretje.opdewolk.nl/alert/" + this.kamer)
+                    this.bevestig = false
+                    this.timer = 0
+                },
+                changeButtonText(index) {
+                    axios.get("https://koffiekarretje.opdewolk.nl/bestel/" + index)
+                },
+                bevestigactie() {
+                    axios.get("https://koffiekarretje.opdewolk.nl/bevestig/" + this.kamer)
+                    this.bevestig = false
+                    this.timer = 0
+                }
+            },
+        });
+    </script>
+</body>
+
+<script>'undefined' === typeof _trfq || (window._trfq = []); 'undefined' === typeof _trfd && (window._trfd = []), _trfd.push({ 'tccl.baseHost': 'secureserver.net' }, { 'ap': 'cpbh-mt' }, { 'server': 'p3plmcpnl499458' }, { 'dcenter': 'p3' }, { 'cp_id': '7547551' }, { 'cp_cache': '' }, { 'cp_cl': '6' })</script>
+<script src='https://img1.wsimg.com/traffic-assets/js/tccl.min.js'></script>
+
+</html>
